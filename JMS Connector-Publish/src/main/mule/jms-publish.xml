@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="09a4f8ca-13cd-4409-a09a-c0ad63bbbeb9" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="74386539-8714-410a-a9e8-e706dcbea108" >
+		<jms:active-mq-connection username="****" password="****" >
+			<jms:caching-strategy >
+				<jms:no-caching />
+			</jms:caching-strategy>
+			<jms:factory-configuration brokerUrl="tcp://localhost:61616" />
+		</jms:active-mq-connection>
+	</jms:config>
+	<flow name="jms-publishFlow" doc:id="bee1dfc6-9fd3-4c21-91f5-897b447352b8" >
+		<http:listener doc:name="Listener" doc:id="2c9be5d2-8ce0-463b-8da6-2d8c69559f23" config-ref="HTTP_Listener_config" path="/jms/publish"/>
+		<logger level="INFO" doc:name="Logging_Payload" doc:id="84eb5392-9b9c-4086-ae02-cdefe917ae32" message="#[payload]"/>
+		<jms:publish doc:name="Publish" doc:id="951175c6-f389-48f5-9179-c28403b6964f" config-ref="JMS_Config" destination="nnrg"/>
+		<ee:transform doc:name="Transform Message" doc:id="6042c7c1-fd52-4018-b862-acd9d5a9f544" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Response":"Successfully published to queue."
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
