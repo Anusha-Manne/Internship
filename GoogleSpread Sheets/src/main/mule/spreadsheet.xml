@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:google-sheets="http://www.mulesoft.org/schema/mule/google-sheets" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/google-sheets http://www.mulesoft.org/schema/mule/google-sheets/current/mule-google-sheets.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="0a99ec1a-5f44-4a8f-8c66-53582873ba2c" >
+		<http:listener-connection host="0.0.0.0" port="8082" />
+	</http:listener-config>
+	<google-sheets:config name="Google_Sheets_Config" doc:name="Google Sheets Config" doc:id="********************************" >
+		<google-sheets:oauth-2-0-connection >
+			<google-sheets:oauth-authorization-code consumerKey="841061572496-rhgo3vtr43tg24mhv8fmte5816tldj7c.apps.googleusercontent.com" consumerSecret="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" before="spreadsheetFlow"/>
+			<google-sheets:oauth-callback-config listenerConfig="HTTP_Listener_config" callbackPath="**********" authorizePath="/authorize" externalCallbackUrl="********************" />
+		</google-sheets:oauth-2-0-connection>
+	</google-sheets:config>
+	<flow name="spreadsheetFlow" doc:id="8ab32c5f-c694-4ee0-976c-e8a4ab4f0261" >
+		<http:listener doc:name="Listener" doc:id="fa804d18-2c07-4762-b48f-3dd8cd951b0e" config-ref="HTTP_Listener_config" path="/google"/>
+		<google-sheets:get-spreadsheets-by-spreadsheet-id doc:name="Get Spreadsheet Properties" doc:id="257e56da-2d05-470c-b99f-6f513d6dc79a" config-ref="Google_Sheets_Config" spreadsheetId="18bZ1u9ZsdmjIOda4afm9ZtDgvsePRmd-VwhpAnZd4w4"/>
+		<logger level="INFO" doc:name="Logger" doc:id="b781dfad-0a73-4f5c-a1bf-8dc2b9422972" message="#[payload]"/>
+		<google-sheets:get-spreadsheets-values-by-spreadsheet-id-range doc:name="Get Spreadsheets Values" doc:id="24071ce9-91d4-4052-8c9a-077e7e2b5bb9" config-ref="Google_Sheets_Config" spreadsheetId="18bZ1u9ZsdmjIOda4afm9ZtDgvsePRmd-VwhpAnZd4w4" range="Sheet1"/>
+		<ee:transform doc:name="Transform Message" doc:id="5e34647a-1b13-48a7-9f09-d3d4718878cd">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"value":payload.values[0],
+	"value":payload.values[0][1],
+	"value":payload.values[1][0],
+	"value":payload.values[1][1]
+	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
