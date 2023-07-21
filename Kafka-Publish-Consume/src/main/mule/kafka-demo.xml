@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="37750450-9eda-47e9-bcf1-8aa506b6e785" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<kafka:producer-config name="Apache_Kafka_Producer_configuration" doc:name="Apache Kafka Producer configuration" doc:id="d8fec065-38a8-4bef-8d71-11b086a3cd66" topic="*****">
+		<kafka:producer-plaintext-connection >
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="localhost:9092" />
+			</kafka:bootstrap-servers>
+		</kafka:producer-plaintext-connection>
+	</kafka:producer-config>
+	<kafka:consumer-config name="Apache_Kafka_Consumer_configuration" doc:name="Apache Kafka Consumer configuration" doc:id="ad23011f-f983-45aa-acfe-dee8ef7e93cb" >
+		<kafka:consumer-plaintext-connection >
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="localhost:9092" />
+			</kafka:bootstrap-servers>
+			<kafka:topic-patterns >
+				<kafka:topic-pattern value="***" />
+			</kafka:topic-patterns>
+		</kafka:consumer-plaintext-connection>
+	</kafka:consumer-config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="f1592d61-b327-4e57-9d49-003dc592ef27" >
+		<salesforce:basic-connection username="**************" password="**********" securityToken="***************" />
+	</salesforce:sfdc-config>
+	<flow name="kafka-demoFlow" doc:id="39bbe974-d524-448d-9f5c-ddbe9a9f3edf" >
+		<http:listener doc:name="Listener" doc:id="**************************" config-ref="HTTP_Listener_config" path="/kafka"/>
+		<kafka:publish doc:name="Publish" doc:id="****************************" config-ref="Apache_Kafka_Producer_configuration" topic="test"/>
+		<ee:transform doc:name="Transform Message" doc:id="707b44be-17d9-4534-8282-b66e538bf9d2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="kafka-demoFlow1" doc:id="f9e44219-6ff0-4216-8097-5019641a49b4" >
+		<http:listener doc:name="Listener" doc:id="e49d7990-8751-48d7-b21d-21fedc5f21f7" config-ref="HTTP_Listener_config" path="/demo"/>
+		<kafka:consume doc:name="Consume" doc:id="c438ae37-5ca3-4a8a-b057-2ac6a81293e4" config-ref="Apache_Kafka_Consumer_configuration"/>
+		<ee:transform doc:name="Transform Message" doc:id="ef655f02-c715-49c9-8ab0-10494acb57e8" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="kafka-demoFlow2" doc:id="604ed8e4-cee5-4409-880f-f9b0bd6daf5c" >
+		<http:listener doc:name="Listener" doc:id="e26fc6d1-4471-4459-a74e-bd8de2658126" config-ref="HTTP_Listener_config" path="/test"/>
+		<salesforce:query doc:name="Query" doc:id="f3c8c37f-6247-4632-b94e-fc8cceb18dd3" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[select 	Name,AccountSource,Phone from Account]]></salesforce:salesforce-query>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="2732192b-79b0-488c-b258-801c6946cdb6">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<kafka:publish doc:name="Publish" doc:id="cb84786d-7aa5-4550-88a2-aeb502545ec0" config-ref="Apache_Kafka_Producer_configuration" topic="test" />
+		<ee:transform doc:name="Transform Message" doc:id="7a17b507-2f8d-4c0f-b178-4a3a975da32b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="kafka-demoFlow3" doc:id="774b6631-c18a-4f9d-bd91-8f8edd6f6ab3" >
+		<http:listener doc:name="Listener" doc:id="4df84398-16af-486a-9ad7-a8e6afb1278d" config-ref="HTTP_Listener_config" path="/consume"/>
+		<kafka:consume doc:name="Consume" doc:id="ad2337f6-d15f-46a5-b4d3-ef4defee385e" config-ref="Apache_Kafka_Consumer_configuration"/>
+		<ee:transform doc:name="Transform Message" doc:id="75ed249c-d5bf-43ce-a676-a44a838765c5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
