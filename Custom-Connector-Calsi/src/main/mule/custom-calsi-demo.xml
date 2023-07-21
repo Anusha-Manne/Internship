@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:calsi="http://www.mulesoft.org/schema/mule/calsi"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/calsi http://www.mulesoft.org/schema/mule/calsi/current/mule-calsi.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="9be673be-91be-4e8d-8ac9-39316546705d" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="custom-calsi-demoFlow" doc:id="f7ed36d9-6141-440c-bef5-f205d9533c98" >
+		<http:listener doc:name="Listener" doc:id="1970df04-3cca-4b8f-a874-2777eb2714ef" config-ref="HTTP_Listener_config" path="/calsi"/>
+		<calsi:add doc:name="Add" doc:id="6763ae0c-1094-474b-bec9-8034dc8a0b45" num1="#[payload.num1]" num2="#[payload.num2]"/>
+		<ee:transform doc:name="Transform Message" doc:id="3f8f2cfa-032c-42bb-a8e5-5d4f1966d7b9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Addition":payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="custom-calsi-demoFlow1" doc:id="edc60bf7-bf1d-44a6-b7cc-34344087414d" >
+		<http:listener doc:name="Listener" doc:id="9a6bfb43-3405-4865-a608-e784ee063d55" config-ref="HTTP_Listener_config" path="/sub"/>
+		<calsi:sub doc:name="Sub" doc:id="a76b82be-cf0b-40ed-b1a6-1a32ffd44077" num1="#[payload.num1]" num2="#[payload.num2]"/>
+		<ee:transform doc:name="Transform Message" doc:id="a7312496-23f2-4841-827d-a62bd71150c4" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Subtraction":payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="custom-calsi-demoFlow2" doc:id="6969bf93-9391-444d-bf62-9c3bda60d0be" >
+		<http:listener doc:name="Listener" doc:id="75c91d0e-fa5d-4ecd-8fc1-97e5d37bd978" config-ref="HTTP_Listener_config" path="/mul"/>
+		<calsi:mul doc:name="Mul" doc:id="e07817dd-8c23-4164-8764-d9ef3a37a42e" num1="#[payload.num1]" num2="#[payload.num2]"/>
+		<ee:transform doc:name="Transform Message" doc:id="aa639206-4bb8-4dad-856a-67f15d100978" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Multiplication":payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="custom-calsi-demoFlow3" doc:id="a3fd4574-17aa-4b74-b787-dfebfd716d1b" >
+		<http:listener doc:name="Listener" doc:id="66d72421-caab-401c-bed5-50f570b32366" config-ref="HTTP_Listener_config" path="/div"/>
+		<calsi:div doc:name="Div" doc:id="de92ad0e-f1e6-428b-8cdf-b03239384c4e" num1="#[payload.num1]" num2="#[payload.num2]"/>
+		<ee:transform doc:name="Transform Message" doc:id="45498c97-95ab-442f-83fa-53d70e9bbc5d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Division":payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
