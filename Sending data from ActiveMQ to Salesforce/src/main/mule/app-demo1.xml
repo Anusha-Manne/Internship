@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo" xmlns:appinsight="http://www.mulesoft.org/schema/mule/appinsight" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/appinsight http://www.mulesoft.org/schema/mule/appinsight/current/mule-appinsight.xsd
+http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="9f5d53e6-fa3d-4f67-9e3c-f43beab58820" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<appinsight:config name="AppInsight_Config" doc:name="AppInsight Config" doc:id="485c69eb-b1f4-40bf-a97e-122a080dd80b" >
+		<appinsight:connection hostname="*******" port="******" username="******" password="******" />
+	</appinsight:config>
+	
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="3d215b68-ba5e-40de-abcb-9f57737202b9" >
+		<salesforce:basic-connection username="****************" password="*********" securityToken="*************" />
+	</salesforce:sfdc-config>
+	<mongo:config name="MongoDB_Config" doc:name="MongoDB Config" doc:id="a5d006d8-490d-4306-b5d8-18d7cf08082d" >
+		<mongo:connection-string-connection connectionString="mongodb://ubbuw46qm8cmjbrq5cg2:uumtk8S4jMzfuzz4U3uC@n1-c2-mongodb-clevercloud-customers.services.clever-cloud.com:27017,n2-c2-mongodb-clevercloud-customers.services.clever-cloud.com:27017/biendhitfubroqq?replicaSet=rs0 " />
+	</mongo:config>
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="f5f15b1b-8996-40f1-9648-e7fab6803baf" >
+		<jms:active-mq-connection username="*****" password="*****" >
+			<jms:factory-configuration brokerUrl="tcp://localhost:61616" />
+		</jms:active-mq-connection>
+	</jms:config>
+	<flow name="app-demo1" doc:id="040e992a-420d-4328-b388-17cea2ad57f4" >
+		<http:listener doc:name="Listener" doc:id="99b90690-1680-43f2-b03f-cbf6d24efa6e" config-ref="HTTP_Listener_config" path="/appinsight"/>
+		<appinsight:audit-log doc:name="Audit log" doc:id="a59f5dc9-6df9-43cf-8986-4f7bf0dd8ec8" config-ref="AppInsight_Config">
+			<appinsight:keys />
+		</appinsight:audit-log>
+		<salesforce:query doc:name="Query" doc:id="2ad29afa-22ff-4854-a8ea-478ae7090015" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[select AccountId,NNRG_Account_ID__c,EAIESB_Primary_Employer_Id__c from Cas]]></salesforce:salesforce-query>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="91af66e5-8b3e-4756-b16e-c3b62a66f75d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<appinsight:audit-log doc:name="Audit log" doc:id="29ffff6f-813b-41ba-9003-9dc36025b8da" config-ref="AppInsight_Config" LogMessageType="INPROCESS">
+			<appinsight:keys />
+		</appinsight:audit-log>
+		<ee:transform doc:name="Transform Message" doc:id="d79f6e7c-19c6-41d4-a006-b9a3530a6450" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<appinsight:audit-log doc:name="Audit log" doc:id="158125df-3eb8-44ed-b135-39ad6a2f5280" config-ref="AppInsight_Config" LogMessageType="COMPLETED">
+			<appinsight:keys />
+		</appinsight:audit-log>
+		<ee:transform doc:name="Transform Message" doc:id="9f9a3d44-20d4-48b4-ae80-556073ff1dc8" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+"Successful"]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2401ed9e-b96d-44dc-8c0d-e9a8d317690c" type="ANY">
+				<appinsight:error-log doc:name="Error log" doc:id="f4b428e9-d808-4b5a-9e5b-c64b4fff5273" config-ref="AppInsight_Config" ErrorCode="#[error.muleMessage.attributes.StatusCode default '500']">
+					<appinsight:keys />
+				</appinsight:error-log>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="app-demo1Flow1" doc:id="18e84f57-8211-4e5f-8c20-b4fab0e33690" >
+		<http:listener doc:name="Listener" doc:id="9eb85400-4031-4810-878a-99c914f11714" config-ref="HTTP_Listener_config" path="/test"/>
+		<jms:consume doc:name="Consume" doc:id="413528a7-f63e-4737-8722-02caad2363e5" config-ref="JMS_Config" destination="eCLEQ" contentType="application/json" encoding="UTF-8">
+			<jms:consumer-type >
+				<jms:queue-consumer />
+			</jms:consumer-type>
+		</jms:consume>
+		<ee:transform doc:name="Transform Message" doc:id="ab24346b-c378-4264-b8da-ed1d055d2359" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	"Name":payload.applicationName,
+	"Archive_Payload__c":payload.archievePayload,
+	"Client_Id__c":payload.ClientID,
+	"Cluster__c":payload.cluster,
+	"Current_Id__c":payload.currentID,
+	"Current_Payload__c":payload.Currentpayload,
+	"Domain_Name__c":payload.Domain,
+	"Elapsed_Time__c":payload.elapsed,
+	"Error_Activity__c":payload.errorActivity,
+	"Flow_Id__c":payload.flowId,
+	"Error_Code__c":payload.errorCode,
+	"Error_Summary__c":payload.errorSummary,
+	"Error_Location__c":null,
+	"Error_Type__c":payload.errorType,
+	"Flow_Name__c":payload.flowName,
+	"Host_Name__c":payload.hostName,
+	"Log_Message__c":payload.logMessage,
+	"Log_Message_Type__c":payload.logMessageType,
+	"Log_Type__c":payload.logType,
+	"Masked_Request_Path__c":payload.maskedRequestPath,
+	"Parent_Id__c":payload.requestPath,
+	"Requested_Path__c":payload.requestPath,
+	"Root_Id__c":payload.rootID,
+	"Status__c":"Received",
+	"User_Id__c":payload.userID		
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:create type="AppInsigthsStage__c" doc:name="Create" doc:id="e5b6ff0c-8c2b-4173-975b-3ecaf6d2ea68" config-ref="Salesforce_Config"/>
+		<ee:transform doc:name="Transform Message" doc:id="c7c47dfd-77de-4ee7-b989-d8e307189654" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
