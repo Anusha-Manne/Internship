@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:concatstring="http://www.mulesoft.org/schema/mule/concatstring"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/concatstring http://www.mulesoft.org/schema/mule/concatstring/current/mule-concatstring.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="981ed942-7212-47bd-9270-4097f7f6d7cd" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="custom-connector-concatFlow" doc:id="92e1fc41-e52d-477d-9be0-4b3a49e4aa74" >
+		<http:listener doc:name="Listener" doc:id="7fa2d55b-efbc-4ee5-bbcb-201cf8665166" config-ref="HTTP_Listener_config" path="/demo"/>
+		<concatstring:concat doc:name="Concat" doc:id="d8befc49-fbe3-4ce7-a096-e4723aa9ce24" firstname="#[payload.firstname]" lastname="#[payload.lastname]"/>
+		<ee:transform doc:name="Transform Message" doc:id="d42e13fd-0a4c-4d6e-9367-f6aa590ad260" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Concatination":payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
