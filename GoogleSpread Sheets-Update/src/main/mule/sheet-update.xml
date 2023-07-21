@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:google-sheets="http://www.mulesoft.org/schema/mule/google-sheets" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/google-sheets http://www.mulesoft.org/schema/mule/google-sheets/current/mule-google-sheets.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="**************" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<google-sheets:config name="Google_Sheets_Config" doc:name="Google Sheets Config" doc:id="****************" >
+		<google-sheets:oauth-2-0-connection >
+			<google-sheets:oauth-authorization-code consumerKey="841061572496-rhgo3vtr43tg24mhv8fmte5816tldj7c.apps.googleusercontent.com" consumerSecret="**************" />
+			<google-sheets:oauth-callback-config listenerConfig="HTTP_Listener_config" callbackPath="*********" authorizePath="/authorize" externalCallbackUrl="http://localhost:8081/oauth2callback"/>
+		</google-sheets:oauth-2-0-connection>
+	</google-sheets:config>
+	<flow name="sheet-updateFlow" doc:id="37b495e0-611f-4b9c-a637-2050c75de4df" >
+		<http:listener doc:name="Listener" doc:id="2cad0793-5623-4b13-8124-79d759fadad1" config-ref="HTTP_Listener_config" path="update"/>
+		<logger level="INFO" doc:name="Logger" doc:id="53df9cf8-d84a-4d56-aa7b-2861102886be" message='"Update Data:" #[payload]'/>
+		<ee:transform doc:name="Transform Message" doc:id="31893b09-7054-48a3-8c86-cb9c0d819b83" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"valueInputOption" : "USER_ENTERED",
+	"data": [
+		{
+		"majorDimension":"COLUMNS",
+		"range":"A3:B3",
+		"values": [
+			[
+				"Saritha"
+			],
+			[
+				"Ma"
+			]
+		]
+		}
+	
+],
+"includeValuesInResponse":false,
+"responseDateTimeRenderOption":"SERIAL_NUMBER",
+"responseValueRenderOption":"UNFORMATTED_VALUE",
+"spreadSheetId":"18bZ1u9ZsdmjIOda4afm9ZtDgvsePRmd-VwhpAnZd4w4"
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="message" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.spreadSheetId as String]]></ee:set-variable>
+				<ee:set-variable variableName="range" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.data[0].range as String]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="f4fb89ca-540d-49ae-8b32-44a38240f4e2" message="Spread Sheet : #[vars.message] and range : #[vars.range]"/>
+		<google-sheets:update-spreadsheets-values-by-spreadsheet-id-range doc:name="Update Spreadsheets Values" doc:id="a7242ea8-04d6-4cae-b1bb-3885f86c4566" spreadsheetId="#[vars.message]" range="#[vars.range]" config-ref="Google_Sheets_Config">
+			<google-sheets:spreadsheets-values-rangeappend-content ><![CDATA[#[payload.data[0]]]]></google-sheets:spreadsheets-values-rangeappend-content>
+		</google-sheets:update-spreadsheets-values-by-spreadsheet-id-range>
+		<ee:transform doc:name="Transform Message" doc:id="a1e21939-5720-450d-8b07-1ed3dd33a5b2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Updated":payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
