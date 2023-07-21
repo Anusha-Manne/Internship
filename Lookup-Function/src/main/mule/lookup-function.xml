@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="5abbfbaf-a53c-4513-be67-2c8411cbd93a" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="c60503df-43da-421e-bd69-710d4f25e590" >
+		<salesforce:basic-connection username="*************" password="*********" securityToken="*********" />
+	</salesforce:sfdc-config>
+	<flow name="lookup-functionFlow" doc:id="7d3d0809-ff10-4d08-9467-0b760bb8dfbd" >
+		<http:listener doc:name="Listener" doc:id="0e19138c-73ee-4a12-973f-f2fe4fbfb5f6" config-ref="HTTP_Listener_config" path="/lookup"/>
+		<ee:transform doc:name="Transform Message" doc:id="fc11adc6-f29b-4dce-9363-c1d6c7b2f682" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+Mule::lookup("lookup-functionFlow1",payload.Id,6000)
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:query doc:name="Query" doc:id="44fc7fd6-7bb5-4308-b7dd-a444f882fd0f" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[select Id,Name from Account where Id =':Id']]></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[output application/java
+---
+{
+	Id : payload.AccountId[0]
+}]]]></salesforce:parameters>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="31cd68ec-2da0-4819-bba8-3ad9d1b3ce15">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	AccountId:payload.Id,
+	AccountName:payload.Name
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="lookup-functionFlow1" doc:id="23fcf5cc-9084-4ba7-ba1e-97505805df74" >
+		<salesforce:query doc:name="Query" doc:id="aa7a603b-8bbd-43a9-9f67-b2c7c89e5db0" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[select AccountId from Contact where Id=':Id']]></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[output application/java
+---
+{
+	Id : payload
+}]]]></salesforce:parameters>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="0cab220a-2c3b-49e1-a0b1-cac60d58f068" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"AccountId":payload.AccountId
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
