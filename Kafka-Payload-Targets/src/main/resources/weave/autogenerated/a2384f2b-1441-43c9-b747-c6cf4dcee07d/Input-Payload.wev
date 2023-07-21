@@ -1,0 +1,31 @@
+%dw 2.0
+
+type auto_a2384f2b_1441_43c9_b747_c6cf4dcee07d_Input_Payload = Binary | {|
+  msg: {|
+    sourcetype: Array<java_lang_Object>, 
+    targettype: Array<java_lang_Object_5>, 
+    sourcedir: Array<java_lang_Object_7>, 
+    targetdir: Array<java_lang_Object_9>
+  |}
+|}
+type java_lang_Object_7 = {|  |} {"typeAlias": "Object",
+"class": "java.lang.Object",
+"typeId": "java.lang.Object"}
+
+
+type java_lang_Object_9 = {|  |} {"typeAlias": "Object",
+"class": "java.lang.Object",
+"typeId": "java.lang.Object"}
+
+
+type java_lang_Object = {|  |} {"typeAlias": "Object",
+"class": "java.lang.Object",
+"typeId": "java.lang.Object"}
+
+
+type java_lang_Object_5 = {|  |} {"typeAlias": "Object",
+"class": "java.lang.Object",
+"typeId": "java.lang.Object"}
+
+
+

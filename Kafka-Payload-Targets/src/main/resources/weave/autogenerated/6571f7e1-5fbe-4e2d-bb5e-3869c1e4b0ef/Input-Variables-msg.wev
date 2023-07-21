@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_6571f7e1_5fbe_4e2d_bb5e_3869c1e4b0ef_Input_Variables_msg = Any
+

@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ftp="http://www.mulesoft.org/schema/mule/ftp"
+	xmlns:s3="http://www.mulesoft.org/schema/mule/s3"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
+http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/current/mule-ftp.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="dfb9fd30-3762-41a2-ad82-3e2add3ffd02" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<kafka:producer-config name="Apache_Kafka_Producer_configuration" doc:name="Apache Kafka Producer configuration" doc:id="**********" topic="*
+***" >
+		<kafka:producer-plaintext-connection >
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="localhost:9092" />
+			</kafka:bootstrap-servers>
+		</kafka:producer-plaintext-connection>
+	</kafka:producer-config>
+	<kafka:consumer-config name="Apache_Kafka_Consumer_configuration" doc:name="Apache Kafka Consumer configuration" doc:id="05b5c45d-73bd-4acc-b405-eb03b315a5cd" >
+		<kafka:consumer-plaintext-connection >
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="localhost:9092" />
+			</kafka:bootstrap-servers>
+			<kafka:topic-patterns >
+				<kafka:topic-pattern value="*****" />
+			</kafka:topic-patterns>
+		</kafka:consumer-plaintext-connection>
+	</kafka:consumer-config>
+	<s3:config name="Amazon_S3_Configuration_source" doc:name="Amazon S3 Configuration" doc:id="b48b9cf7-1ae0-4f9b-a6ce-515323567021" >
+		<s3:connection accessKey="#[vars.s_access]" secretKey="#[vars.s_secret]"/>
+	</s3:config>
+	<ftp:config name="FTP_Config_Source" doc:name="FTP Config" doc:id="3f5ab63f-0b5d-42fd-98f4-94790ea4a60f" >
+		<ftp:connection host="#[vars.s_host]" username="#[vars.s_user]" password="*********"/>
+	</ftp:config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="cc03c292-776d-4cad-ae34-14c385cc99c0" >
+		<db:my-sql-connection host="*********" port="****" user="********" password="*********" database="********"/>
+	</db:config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="f3135e69-2f0f-46f0-baea-7eaa41a0e4c5" />
+	<ftp:config name="FTP_Config_target" doc:name="FTP Config" doc:id="2ebf8eab-0dbd-4a91-b238-4056fac371e9" >
+		<ftp:connection host="#[payload.thost]" username="#[payload.tuser]" password="********" />
+	</ftp:config>
+	<s3:config name="Amazon_S3_Configuration_target" doc:name="Amazon S3 Configuration" doc:id="d6073658-5824-4bac-9bff-9fc5afeff69a" >
+		<s3:connection accessKey="#[vars.t_access]" secretKey="#[vars.t_secret]" />
+	</s3:config>
+	<flow name="kafka-taskFlow" doc:id="a2384f2b-1441-43c9-b747-c6cf4dcee07d" >
+		<kafka:publish doc:name="Publish" doc:id="6a6b7e39-7a83-4b66-bade-2d84cf7bdced" config-ref="Apache_Kafka_Producer_configuration" topic="sample" key="#[vars.msg.Id]">
+
+		</kafka:publish>
+		<ee:transform doc:name="Transform Message" doc:id="4ffa6cee-60d3-4528-af8c-593259e000d4" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="kafka-taskFlow1" doc:id="cafbc81c-d34d-4396-a79a-1c6c17babcb6" >
+		<kafka:message-listener doc:name="Message listener" doc:id="ca68c367-2d4d-44da-af6f-a62d7cb5c54f" config-ref="Apache_Kafka_Consumer_configuration"/>
+		<ee:transform doc:name="Transform Message" doc:id="62e5e612-746c-4bf0-8e62-fea0ae1622c4" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload
+]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="content" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+				<ee:set-variable variableName="key" ><![CDATA[%dw 2.0
+output application/java
+---
+attributes.key]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="9aab5229-b56f-48be-a7eb-d917710d31ca" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+read(vars.key,'application/json')]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<db:query-single doc:name="Query single" doc:id="c8fcd473-b96b-41e6-af31-8a664d7f24a3" config-ref="Database_Config">
+			<db:sql ><![CDATA[select targettype,targetdir,thost,tport,tuser,tfolder,tbucket,tobject,taccesskey,tsecretkey from kafka3 where Id=:id;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[id:payload]]]></db:input-parameters>
+		</db:query-single>
+		<ee:transform doc:name="Transform Message" doc:id="f7b4a876-f3e6-4839-b338-bd553b92ddfa" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+
+	targettype:payload.targettype,
+	targetdir:payload.targetdir,
+	tport:payload.tport,
+	tfolder:payload.tfolder,
+	tbucket:payload.tbucket,
+	tobject:payload.tobject,
+	thost:payload.thost,
+	tuser:payload.tuser
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="t_host" ><![CDATA[%dw 2.0
+output text/plain
+---
+ payload.thost]]></ee:set-variable>
+				<ee:set-variable variableName="t_user" ><![CDATA[%dw 2.0
+output text/plain
+---
+ payload.tuser]]></ee:set-variable>
+				<ee:set-variable variableName="t_access" ><![CDATA[%dw 2.0
+output text/plain
+---
+ payload.taccesskey]]></ee:set-variable>
+				<ee:set-variable variableName="t_secret" ><![CDATA[%dw 2.0
+output text/plain
+---
+ payload.tsecretkey]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="f639f7b1-2171-4f99-9776-5387d6ea8727" >
+			<when expression='#[payload.targettype== "file"]'>
+				<file:write doc:name="Write" doc:id="45ccfdb7-4267-45c1-83d8-b62d472a1e0b" path="#[payload.targetdir]" config-ref="File_Config">
+					<file:content ><![CDATA[#[vars.content]]]></file:content>
+				</file:write>
+			</when>
+			<when expression='#[payload.targettype=="ftp"]'>
+				<ftp:write doc:name="Write" doc:id="10549da4-247a-45d5-beb9-06f6dbc88c99" config-ref="FTP_Config_target" path="#[payload.tfolder]">
+					<ftp:content ><![CDATA[#[vars.content]]]></ftp:content>
+				</ftp:write>
+			</when>
+			<when expression='#[payload.targettype=="aws"]'>
+				<s3:put-object doc:name="Put Object" doc:id="df6b6cba-f326-4bc4-bf07-8bf480593503" config-ref="Amazon_S3_Configuration_target" bucketName="#[payload.tbucket]" key="#[payload.tobject]">
+					<s3:content ><![CDATA[#[vars.content]]]></s3:content>
+				</s3:put-object>
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Transform Message" doc:id="ffe25450-b8ec-488d-b0df-d77fed194a2e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message":payload
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="kafka-targetsFlow" doc:id="8581ef3d-a737-42f7-9ec7-3cd0aced5354" >
+		<http:listener doc:name="Listener" doc:id="5c5a52a4-a501-45f9-a1df-2cbafa929c98" config-ref="HTTP_Listener_config" path="/test"/>
+		<ee:transform doc:name="Transform Message" doc:id="e210bfe2-85fa-4536-821c-789424733eca" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="msg" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		
+</ee:transform>
+		<db:query-single doc:name="Query single" doc:id="5d90bf09-252b-4e8a-a1b0-ee483241beca" config-ref="Database_Config">
+			<db:sql ><![CDATA[select sourcetype from kafka3 where Id=:id;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[id:vars.msg.Id]]]></db:input-parameters>
+		</db:query-single>
+		<ee:transform doc:name="Transform Message" doc:id="0457bf58-9b9a-42a6-acce-2a981267f5b0" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="source_type" ><![CDATA[%dw 2.0
+output text/plain
+---
+payload.sourcetype]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="a2c2e85e-ad0f-4d40-b0cf-db0f2943b180" name="kafka-targetsSub_Flow"/>
+	</flow>
+	<sub-flow name="kafka-targetsSub_Flow" doc:id="6571f7e1-5fbe-4e2d-bb5e-3869c1e4b0ef" >
+		<db:query-single doc:name="Query single" doc:id="3d507070-e095-4cc6-bdc6-a796005ca660" config-ref="Database_Config">
+			<db:sql ><![CDATA[select sourcedir,shost,sport,suser,sfolder,sbucket,sobject,saccesskey,ssecretkey from kafka3 where Id=:id;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[id:vars.msg.Id]]]></db:input-parameters>
+		</db:query-single>
+		<ee:transform doc:name="Transform Message" doc:id="5ad943a9-7ac4-4737-bf9a-5ebb43d33cc5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"sourcedir":payload.sourcedir,
+	"sport":payload.sport,
+	"sfolder":payload.sfolder,
+	"sbucket":payload.sbucket,
+	"sobject":payload.sobject,
+	"saccesskey":payload.saccesskey,
+	"ssecretkey":payload.ssecretkey
+	
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="data" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+				<ee:set-variable variableName="s_host" ><![CDATA[%dw 2.0
+output text/plain
+---
+ payload.shost]]></ee:set-variable>
+				<ee:set-variable variableName="s_user" ><![CDATA[%dw 2.0
+output text/plain
+---
+ payload.suser]]></ee:set-variable>
+				<ee:set-variable variableName="s_access" ><![CDATA[%dw 2.0
+output text/plain
+---
+ payload.saccesskey
+]]></ee:set-variable>
+				<ee:set-variable variableName="s_secret" ><![CDATA[%dw 2.0
+output text/plain
+---
+ payload.ssecretkey]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="7a457e01-8dd3-4be1-af38-827df7d90b36">
+			<when expression='#[vars.source_type =="file"]'>
+				<file:read doc:name="Read" doc:id="c0067f09-0b68-4731-be83-c0065a17cf27" path="#[payload.sourcedir]"/>
+			</when>
+			<when expression='#[vars.source_type=="ftp"]'>
+				<ftp:read doc:name="Read" doc:id="c5010bfb-ebc5-4b15-9f18-1db64f33710c" config-ref="FTP_Config_Source" path="#[payload.sfolder]"/>
+			</when>
+			<otherwise >
+				<s3:get-object doc:name="Get Object" doc:id="73b0d1b6-63cd-43a5-9696-df5bb5c12f84" config-ref="Amazon_S3_Configuration_source" bucketName="#[payload.sbucket]" key="#[payload.sobject]" />
+			</otherwise>
+		</choice>
+		<flow-ref doc:name="Flow Reference" doc:id="b4fbdda1-e701-4998-a89d-6e53998d401c" name="kafka-taskFlow"/>
+	</sub-flow>
+</mule>
