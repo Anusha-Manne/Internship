@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:errorlog="http://www.mulesoft.org/schema/mule/errorlog" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/errorlog http://www.mulesoft.org/schema/mule/errorlog/current/mule-errorlog.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="86bda20a-44a6-4c0b-9e26-ecaa48bb1c97" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="1db515a7-398f-4e1f-be19-5c92d2587168" >
+		<salesforce:basic-connection username="**************" password="**********" securityToken="*******************"/>
+	</salesforce:sfdc-config>
+	<errorlog:config name="ErrorLog_Config" doc:name="ErrorLog Config" doc:id="df497a8a-87ae-4dcc-9a34-fc907a95a6e2" >
+		<errorlog:connection hostname="localhost" port="61616" username="admin" password="admin" />
+	</errorlog:config>
+	<flow name="error-demoFlow" doc:id="df4831d4-33dd-469a-b786-161a56d735b2" >
+		<http:listener doc:name="Listener" doc:id="70bd93fd-82e5-4a8d-9126-60548e4c1dbc" config-ref="HTTP_Listener_config" path="/demo"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="3310b90f-8865-4ba4-9ada-08a7171b2839" >
+			<route >
+				<ee:transform doc:name="Transform Message" doc:id="d7a25b50-e13a-4958-b70e-5d4742c2d35a">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</route>
+			<route >
+				<salesforce:query doc:name="Query" doc:id="1edd3000-eb59-4186-9155-9e431bada8e7" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query><![CDATA[select AccountId,CaseNumber,Origin,Status from Case]]></salesforce:salesforce-query>
+		</salesforce:query>
+				<ee:transform doc:name="Transform Message" doc:id="58f2884d-cc72-42d3-ac4d-d2f777ac63db">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</route>
+		</scatter-gather>
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="1d42489d-0e79-4e17-90e8-586951d0bfb1" >
+				<errorlog:errorlog doc:name="Errorlog" doc:id="d3ba5968-5a31-4ac0-ad80-1c352ec142a2" config-ref="ErrorLog_Config" ErrorCode="#[error.muleMessage.attributes.StatusCode default '500']"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
