@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="3bd43288-2b55-4af2-85c0-4dbb7eef174f" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="e4627c03-81aa-428c-9281-2f2cee8130f2" >
+		<salesforce:basic-connection username="supriyagujjari017@gmail.com" password="supriyaNnrg1" securityToken="V8efCImx92D5n8xhjdhQ7M5WV"/>
+	</salesforce:sfdc-config>
+	<flow name="platformFlow" doc:id="0f491fdd-6801-401b-b0aa-6c61b4df8492" >
+		<http:listener doc:name="Listener" doc:id="2700aa4a-328b-4845-86dd-66cd5776c671" config-ref="HTTP_Listener_config" path="platform"/>
+		<salesforce:publish-platform-event-message doc:name="Publish platform event message" doc:id="f4cf6103-dd31-4fa4-9757-def2b440273d" config-ref="Salesforce_Config" platformEventName="contact_event__e"/>
+		<ee:transform doc:name="Transform Message" doc:id="bdef9345-e5bb-4c41-b80f-720efe0d297d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+"message":"Created"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
