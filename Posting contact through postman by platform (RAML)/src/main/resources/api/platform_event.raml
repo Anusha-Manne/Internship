@@ -1,0 +1,33 @@
+#%RAML 1.0
+types:
+  contactDataType:
+    properties:
+      name__c:
+        example: Example
+        type: string
+      email__c:
+        example: Example
+        type: string
+      department__c:
+        example: Example
+        type: string
+      business_phone__c:
+        example: Example
+        type: string
+title: platform API
+mediaType:
+  - application/json
+version: v1
+protocols:
+  - HTTP
+/publish/platform:
+  post:
+    body:
+      application/json:
+        type: contactDataType
+    responses:
+      "200":
+        body:
+          application/json:
+            example: Example
+            type: string
