@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:google-sheets="http://www.mulesoft.org/schema/mule/google-sheets" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/google-sheets http://www.mulesoft.org/schema/mule/google-sheets/current/mule-google-sheets.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="4d8f8a83-1582-4c85-b0cd-029a8266624b" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<google-sheets:config name="Google_Sheets_Config" doc:name="Google Sheets Config" doc:id="**********************" >
+		<google-sheets:oauth-2-0-connection >
+			<google-sheets:oauth-authorization-code consumerKey="841061572496-rhgo3vtr43tg24mhv8fmte5816tldj7c.apps.googleusercontent.com" consumerSecret="*****************"/>
+			<google-sheets:oauth-callback-config listenerConfig="HTTP_Listener_config" authorizePath="*********" callbackPath="/oauth2callback" externalCallbackUrl="http://localhost:8081/oauth2callback"/>
+		</google-sheets:oauth-2-0-connection>
+	</google-sheets:config>
+	<flow name="g-sheetsFlow" doc:id="c78fb4be-3d09-4e0c-be5b-0c4ab63f2244" >
+		<http:listener doc:name="Listener" doc:id="d3242b55-4d94-4d32-9260-414c9f813bdf" config-ref="HTTP_Listener_config" path="sheet"/>
+		<logger level="INFO" doc:name="Logger" doc:id="f973dc53-f1dc-4b22-9af5-2aaff06ab00d" message='"Append data:" #[payload]'/>
+		<ee:transform doc:name="Transform Message" doc:id="63e9b6a4-1e32-4036-ad94-689c65a56f6a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+    majorDimension:payload.majorDimension,
+    values:payload.values,
+    range:payload.range
+}
+]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="message" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="b2946640-2e60-4441-8d8f-fa631b6a21f2" message='"Specified range:" #[payload.range] "and value Input Option as:" #[vars.message.valueInputOption] "for target spreadSheet:" #[vars.message.spreadSheetId]'/>
+		<google-sheets:create-spreadsheets-values-rangeappend-by-spreadsheet-id doc:name="Append Spreadsheets Values" doc:id="5e3b8ff1-83c8-4e00-86a9-28c39e587887" config-ref="Google_Sheets_Config" spreadsheetId="#[vars.message.spreadSheetId]" range="#[payload.range]" insertDataOption="#[vars.message.valueInputOption]"/>
+		<ee:transform doc:name="Transform Message" doc:id="deb14575-f2b8-4ffa-ad08-a410dbc9f130" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Response" : payload	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
