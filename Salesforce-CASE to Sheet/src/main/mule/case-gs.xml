@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:appinsight="http://www.mulesoft.org/schema/mule/appinsight"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:google-sheets="http://www.mulesoft.org/schema/mule/google-sheets" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/google-sheets http://www.mulesoft.org/schema/mule/google-sheets/current/mule-google-sheets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/appinsight http://www.mulesoft.org/schema/mule/appinsight/current/mule-appinsight.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="b2d647ce-4a86-4456-a487-e807c83a6a7d" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="f526780c-603b-4d9c-882f-c40f7f4082d2" >
+		<salesforce:basic-connection username="***********" password="********" securityToken="**************" />
+	</salesforce:sfdc-config>
+	<google-sheets:config name="Google_Sheets_Config" doc:name="Google Sheets Config" doc:id="********************" >
+		<google-sheets:oauth-2-0-connection >
+			<google-sheets:oauth-authorization-code consumerKey="841061572496-rhgo3vtr43tg24mhv8fmte5816tldj7c.apps.googleusercontent.com" consumerSecret="******************" />
+			<google-sheets:oauth-callback-config listenerConfig="HTTP_Listener_config" callbackPath="*********" authorizePath="/authorize" externalCallbackUrl="http://localhost:8081/oauth2callback" />
+		</google-sheets:oauth-2-0-connection>
+	</google-sheets:config>
+	<appinsight:config name="AppInsight_Config" doc:name="AppInsight Config" doc:id="9cf7c891-7e09-4f78-ad96-e7482817b194" >
+		<appinsight:connection hostname="localhost" port="61616" username="admin" password="admin" />
+	</appinsight:config>
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="b883ff65-57a0-4535-a4d8-f91e3eb8e466" >
+		<jms:active-mq-connection username="****" password="**********" >
+			<jms:factory-configuration brokerUrl="tcp://localhost:61616" />
+		</jms:active-mq-connection>
+	</jms:config>
+	<flow name="case-gsFlow" doc:id="482277de-6b9f-4644-85cd-f110bc7abad3" >
+		<http:listener doc:name="Listener" doc:id="7171b45a-8b52-43c4-924a-796dd381ebd4" config-ref="HTTP_Listener_config" path="/test"/>
+		<appinsight:audit-log doc:name="Audit log" doc:id="0dbe881c-e636-4ec7-a893-871a03d915ff" config-ref="AppInsight_Config">
+			<appinsight:keys />
+		</appinsight:audit-log>
+		<salesforce:query doc:name="Query" doc:id="0e2aaf36-1d8d-4b93-8ead-7052f694b6d8" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[select AccountId,Status,Origin,Id,Status__C from Case where Status__c=null]]></salesforce:salesforce-query>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="1bea0516-e23d-4d62-9a0e-9b3883dd541d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload map(p,index)->
+{
+	Id:p.Id,
+	Status__c:"true"
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="vars" ><![CDATA[%dw 2.0
+output application/json
+---
+payload ]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<salesforce:update type="Case" doc:name="Update" doc:id="30092e9b-dcd8-4708-b047-45f21aea846d" config-ref="Salesforce_Config"/>
+		<appinsight:audit-log doc:name="Audit log" doc:id="a7aff404-804c-429e-9efd-102834e09b6e" config-ref="AppInsight_Config" LogMessageType="INPROCESS">
+			<appinsight:keys />
+		</appinsight:audit-log>
+		<ee:transform doc:name="Transform Message" doc:id="299aed94-844b-43dc-98a0-515371b16a09" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	majorDimension:"COLUMNS",
+	values:
+	[
+		vars.vars.AccountId,
+		vars.vars.Origin,
+		vars.vars.Status
+		
+	]
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<google-sheets:create-spreadsheets-values-rangeappend-by-spreadsheet-id doc:name="Append Spreadsheets Values" doc:id="d71c74d4-58b3-4743-a0b1-4af22b352e3d" config-ref="Google_Sheets_Config" spreadsheetId="18bZ1u9ZsdmjIOda4afm9ZtDgvsePRmd-VwhpAnZd4w4" range="Sheet1!A1:Z1000" insertDataOption="INSERT_ROWS"/>
+		<ee:transform doc:name="Transform Message" doc:id="c101e23a-2c41-47ef-b355-d6f2c6ab9267" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload.updates]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<appinsight:audit-log doc:name="Audit log" doc:id="d4066fae-adc8-40b1-8170-556c4557f2a6" config-ref="AppInsight_Config" LogMessageType="COMPLETED">
+			<appinsight:keys />
+		</appinsight:audit-log>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="37d47090-c58d-484a-a393-676acd2bc91f" >
+				<appinsight:error-log doc:name="Error log" doc:id="632fed78-550c-4627-8891-7dce53746f3c" config-ref="AppInsight_Config" ErrorCode="#[error.muleMessage.attributes.StatusCode default '500']">
+					<appinsight:keys />
+				</appinsight:error-log>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="case-gsFlow1" doc:id="90512873-52f2-45aa-899b-fa241682eeeb" >
+		<http:listener doc:name="Listener" doc:id="ab26596c-c714-4a9d-aca4-a29a00bd3d8b" config-ref="HTTP_Listener_config" path="/jvm"/>
+		<jms:consume doc:name="Consume" doc:id="11071d2a-df09-4b55-9b40-f039f2741a76" config-ref="JMS_Config" destination="eCLEQ" contentType="application/json" encoding="UTF-8">
+			<jms:consumer-type >
+				<jms:queue-consumer />
+			</jms:consumer-type>
+		</jms:consume>
+		<ee:transform doc:name="Transform Message" doc:id="67e010cf-300c-4942-ba2e-978d59d8e494" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	"Name":payload.applicationName,
+	"Archive_Payload__c":payload.archievePayload,
+	"Client_Id__c":payload.ClientID,
+	"Cluster__c":payload.cluster,
+	"Current_Id__c":payload.currentID,
+	"Current_Payload__c":payload.Currentpayload,
+	"Domain_Name__c":payload.Domain,
+	"Elapsed_Time__c":payload.elapsed,
+	"Error_Activity__c":payload.errorActivity,
+	"Flow_Id__c":payload.flowId,
+	"Error_Code__c":payload.errorCode,
+	"Error_Summary__c":payload.errorSummary,
+	"Error_Location__c":null,
+	"Error_Type__c":payload.errorType,
+	"Flow_Name__c":payload.flowName,
+	"Host_Name__c":payload.hostName,
+	"Log_Message__c":payload.logMessage,
+	"Log_Message_Type__c":payload.logMessageType,
+	"Log_Type__c":payload.logType,
+	"Masked_Request_Path__c":payload.maskedRequestPath,
+	"Parent_Id__c":payload.requestPath,
+	"Requested_Path__c":payload.requestPath,
+	"Root_Id__c":payload.rootID,
+	"Status__c":"Received",
+	"User_Id__c":payload.userID	
+}]
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:create doc:name="Create" doc:id="a348820e-fff7-4d1e-b934-8eb6763045ac" config-ref="Salesforce_Config" type="AppInsigthsStage__c"/>
+		<ee:transform doc:name="Transform Message" doc:id="002ceccd-47b3-45ec-a096-1b88a2a8d02d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
