@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd">
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="c1fd9795-c560-43f1-8b11-0769289d5802" >
+		<salesforce:basic-connection username="*****************" password="***********" securityToken="*****************" />
+	</salesforce:sfdc-config>
+	<mongo:config name="MongoDB_Config" doc:name="MongoDB Config" doc:id="444c622c-613d-4e91-97a2-e0115330bb6c" >
+		<mongo:connection-string-connection connectionString="mongodb://ubbuw46qm8cmjbrq5cg2:uumtk8S4jMzfuzz4U3uC@n1-c2-mongodb-clevercloud-customers.services.clever-cloud.com:27017,n2-c2-mongodb-clevercloud-customers.services.clever-cloud.com:27017/biendhitfubroqq?replicaSet=rs0 " />
+	</mongo:config>
+	<flow name="salesforce-productFlow" doc:id="8c0b7f51-aee2-4bf9-88fe-8360ed171564" >
+		<scheduler doc:name="Scheduler" doc:id="f064f469-fb32-4753-9c67-d52c05857836" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="1" timeUnit="HOURS"/>
+			</scheduling-strategy>
+		</scheduler>
+		<salesforce:query doc:name="Query" doc:id="bb7012b6-a35f-4b80-a4a6-fa029af0e77e" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[select Name,ProductCode,Description,StockKeepingUnit,mongo_Id__c from Product2]]></salesforce:salesforce-query>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="96f94c52-0b34-47cb-9717-79c448cc9d95">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map(p,index)->
+{
+	"Name":p.Name,
+	"ProductCode":p.ProductCode,
+	"Description":p.Description,
+	"StockKeepingUnit":p.StockKeepingUnit
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<mongo:insert-documents doc:name="Insert documents" doc:id="1e8dcd5a-c7f8-4113-966f-505f5c725667" collectionName="Products-Mule" config-ref="MongoDB_Config" />
+	</flow>
+</mule>
