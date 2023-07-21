@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka" xmlns:mule-zuora-connector="http://www.mulesoft.org/schema/mule/mule-zuora-connector"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/mule-zuora-connector http://www.mulesoft.org/schema/mule/mule-zuora-connector/current/mule-mule-zuora-connector.xsd
+http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd">
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="2895ab75-fcac-4df7-9b81-29c13ed8d451" >
+		<salesforce:basic-connection username="*************" password="***********" securityToken="*******************"/>
+	</salesforce:sfdc-config>
+	<mule-zuora-connector:config name="Zuora_Connector_Mule4Connector_Config" doc:name="Zuora Connector Mule4Connector Config" doc:id="47e8b9ce-89fd-4d12-bf2f-2abcb1dc51cd" >
+		<mule-zuora-connector:oauth2-connection >
+			<mule-zuora-connector:oauth-client-credentials clientId="**************" clientSecret="******************" />
+		</mule-zuora-connector:oauth2-connection>
+	</mule-zuora-connector:config>
+	<kafka:producer-config name="Apache_Kafka_Producer_configuration" doc:name="Apache Kafka Producer configuration" doc:id="188d56d8-d46e-4e36-a741-b6c7c76f8336" topic="app1" >
+		<kafka:producer-plaintext-connection >
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="localhost:9092" />
+			</kafka:bootstrap-servers>
+		</kafka:producer-plaintext-connection>
+	</kafka:producer-config>
+	<mule-zuora-connector:config name="Zuora_Connector_Mule4Connector_Config1" doc:name="Zuora Connector Mule4Connector Config" doc:id="eb340566-d125-4578-89f6-1f5895f552de" >
+		<mule-zuora-connector:oauth2-connection >
+			<mule-zuora-connector:oauth-client-credentials clientId="*****************" clientSecret="*************************" />
+		</mule-zuora-connector:oauth2-connection>
+	</mule-zuora-connector:config>
+	<flow name="salesforce-zFlow" doc:id="****************************" >
+		<salesforce:subscribe-channel-listener doc:name="Subscribe channel listener" doc:id="e75fd7eb-892f-49f8-b481-630270e9d72f" config-ref="Salesforce_Config" streamingChannel="/event/Zuora_Account__e"/>
+		<logger level="INFO" doc:name="Logger" doc:id="2ca9dc68-f80b-434f-a115-32ab6488746a" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]" />
+		<ee:transform doc:name="Transform Message" doc:id="48a4cb48-b6d4-43c9-adb0-76d48dedc175" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload.data.payload]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="query" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	queryString:"select accountNumber,name,SF_Id__c from account where SF_Id__c ='" ++ payload.data.payload.sfid__c ++ "'"
+}]]></ee:set-variable>
+				<ee:set-variable variableName="vars" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"autoPay":false,
+	"billCycleDay":0,
+	"billToContact":{
+		"firstName":payload.data.payload.firstName__c,
+		"lastName":payload.data.payload.lastName__c,
+		"country":payload.data.payload.country__c,
+		"state":payload.data.payload.state__c
+	},
+	"currency":"USD",
+	"name":payload.data.payload.name__c,
+	"paymentTerm": "Due Upon Receipt",
+	"SF_Id__c":payload.data.payload.sfid__c
+}]]></ee:set-variable>
+				<ee:set-variable variableName="Sf" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	SFID:payload.data.payload.sfid__c
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<mule-zuora-connector:create-v1-action-query doc:name="Query" doc:id="c2d63263-ba2b-47b4-8e34-4c0b632cde69" config-ref="Zuora_Connector_Mule4Connector_Config1">
+			<mule-zuora-connector:content ><![CDATA[#[vars.query]]]></mule-zuora-connector:content>
+		</mule-zuora-connector:create-v1-action-query>
+		<choice doc:name="Choice" doc:id="38433b70-95df-4a5b-9b0d-2e1d6710489c" >
+			<when expression="#[payload.size == 0]">
+				<mule-zuora-connector:create-v1-accounts doc:name="Create account" doc:id="39e09508-9125-45c6-bf91-1c870d9a2d4d" config-ref="Zuora_Connector_Mule4Connector_Config1">
+					<mule-zuora-connector:content ><![CDATA[#[vars.vars]]]></mule-zuora-connector:content>
+				</mule-zuora-connector:create-v1-accounts>
+				<ee:transform doc:name="Transform Message" doc:id="ac99d674-ca83-4562-8664-342cd24ba7fe" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+[{
+	ZuoraId__c:payload.accountNumber,
+	Id:vars.Sf.SFID
+}]]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<salesforce:update type="Account" doc:name="Update" doc:id="f7da5f21-2ea3-4d09-872c-bda4c613aa1f" config-ref="Salesforce_Config"/>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="eafeda89-431f-4a4d-8f05-58646921b1c6" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Message":"Already exists"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="811c776f-2f34-4e10-9218-654d5886680b" >
+				<kafka:publish doc:name="Publish" doc:id="db94e5df-4c4d-4be7-9846-7f16771ffb5f" config-ref="Apache_Kafka_Producer_configuration" topic="app1"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
